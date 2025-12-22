@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <title>Ziemia 3D – Dzień i Noc</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: black;
+      touch-action: none;
+    }
+    #info {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: white;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+
+<div id="info">
+  ☀️ Przeciągnij palcem / myszą – sterujesz Słońcem (dzień/noc)
+</div>
+
+<!-- THREE.JS -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+
+<script>
+  // SCENA
+  const scene = new THREE.Scene();
+
+  // KAMERA
+  const camera = new THREE.PerspectiveCamera(
+    60,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+  );
+  camera.position.z = 6;
+
+  // RENDERER
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(window.devicePixelRatio);
+  document.body.appendChild(renderer.domElement);
+
+  // ⭐ GWIAZDY
+  const starGeometry = new THREE.BufferGeometry();
+  const starCount = 2000;
+  const positions = [];
+
+  for (let i = 0; i < starCount; i++) {
+    positions.push(
+      (Math.random() - 0.5) * 500,
+      (Math.random() - 0.5) * 500,
+      (Math.random() - 0.5) * 500
+    );
+  }
+
+  starGeometry.setAttribute(
+    'position',
+    new THREE.Float32BufferAttribute(positions, 3)
+  );
+
+  const starMaterial = new THREE.PointsMaterial({ color: 0xffffff });
+  const stars = new THREE.Points(starGeometry, starMaterial);
+  scene.add(stars);
+
+  // 🌍 TEKSTURY
+  const loader = new THREE.TextureLoader();
+
+  const earthTexture = loader.load(
+    "https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg"
+  );
+  const cloudTexture = loader.load(
+    "https://threejs.org/examples/textures/planets/earth_clouds_1024.png"
+  );
+  const moonTexture = loader.load(
+    "https://threejs.org/examples/textures/planets/moon_1024.jpg"
+  );
+
+  // 🌍 ZIEMIA
+  const earthGroup = new THREE.Group();
+
+  const earth = new THREE.Mesh(
+    new THREE.SphereGeometry(1, 64, 64),
+    new THREE.MeshPhongMaterial({ map: earthTexture })
+  );
+
+  // 🔄 NACHYLENIE OSI ZIEMI
+  earth.rotation.z = THREE.MathUtils.degToRad(23.44);
+
+  earthGroup.add(earth);
+  scene.add(earthGroup);
+
+  // ☁️ CHMURY
+  const clouds = new THREE.Mesh(
+    new THREE.SphereGeometry(1.01, 64, 64),
+    new THREE.MeshPhongMaterial({
+      map: cloudTexture,
+      transparent: true,
+      opacity: 0.8,
+      depthWrite: false
+    })
+  );
+  earthGroup.add(clouds);
+
+  // 🌙 KSIĘŻYC
+  const moon = new THREE.Mesh(
+    new THREE.SphereGeometry(0.27, 32, 32),
+    new THREE.MeshPhongMaterial({ map: moonTexture })
+  );
+  scene.add(moon);
+
+  // ☀️ SŁOŃCE = ŚWIATŁO
+  const sunLight = new THREE.DirectionalLight(0xffffff, 1.5);
+  sunLight.position.set(5, 0, 5);
+  scene.add(sunLight);
+
+  const ambient = new THREE.AmbientLight(0x222222);
+  scene.add(ambient);
+
+  // 🎮 STEROWANIE DOTYKIEM / MYSZĄ
+  function moveSun(x, y) {
+    sunLight.position.x = x * 10;
+    sunLight.position.y = y * 10;
+  }
+
+  window.addEventListener("pointermove", (e) => {
+    const x = (e.clientX / window.innerWidth) * 2 - 1;
+    const y = -(e.clientY / window.innerHeight) * 2 + 1;
+    moveSun(x, y);
+  });
+
+  // 📱 RESPONSYWNOŚĆ
+  window.addEventListener("resize", () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  // 🔄 ANIMACJA
+  let moonAngle = 0;
+
+  function animate() {
+    requestAnimationFrame(animate);
+
+    // obrót Ziemi
+    earth.rotation.y += 0.0015;
+
+    // obrót chmur (szybciej)
+    clouds.rotation.y += 0.002;
+
+    // orbita Księżyca
+    moonAngle += 0.002;
+    moon.position.set(
+      Math.cos(moonAngle) * 2.5,
+      0,
+      Math.sin(moonAngle) * 2.5
+    );
+
+    renderer.render(scene, camera);
+  }
+
+  animate();
+</script>
+
+</body>
+</html>
